@@ -18,8 +18,19 @@ class Mover:
     - Setzt Joint-Geschwindigkeiten in MuJoCo
     """
 
-    def __init__(self, env, mu_index, mu_start, mu_joint, mu_start_move,
-                 follow, max_dist, vel, cable_connect, cable_start_mu):
+    def __init__(
+        self,
+        env,
+        mu_index,
+        mu_start,
+        mu_joint,
+        mu_start_move,
+        follow,
+        max_dist,
+        vel,
+        cable_connect,
+        cable_start_mu,
+    ):
         """
         Initialisiert einen Mover.
 
@@ -57,9 +68,9 @@ class Mover:
         self.y = mu_start[1]
 
         # ========== JOINT KONTROLLE ==========
-        mu_joint_x = mu_joint + "x"
+        mu_joint_x = mu_joint + 'x'
         self.joint_x = mu_joint_x
-        mu_joint_y = mu_joint + "y"
+        mu_joint_y = mu_joint + 'y'
         self.joint_y = mu_joint_y
 
         # ========== BEWEGUNGSPARAMETER ==========
@@ -105,10 +116,10 @@ class Mover:
         Returns:
             Distanz oder normalisierte Distanz
         """
-        dist = math.sqrt((self.x - x)**2 + (self.y - y)**2)
+        dist = math.sqrt((self.x - x) ** 2 + (self.y - y) ** 2)
 
         if dist_norm > 0:
-            return (dist - dist_norm/2) / (dist_norm/2)
+            return (dist - dist_norm / 2) / (dist_norm / 2)
         else:
             return dist
 
@@ -127,10 +138,10 @@ class Mover:
         Args:
             norm: True für Normalisierung auf [-1, 1]
         """
-        dist = math.sqrt((self.x - self.x_t)**2 + (self.y - self.y_t)**2)
+        dist = math.sqrt((self.x - self.x_t) ** 2 + (self.y - self.y_t) ** 2)
 
         if norm:
-            return (dist - 5/2) / (5/2)
+            return (dist - 5 / 2) / (5 / 2)
         else:
             return dist
 
@@ -178,17 +189,19 @@ class Mover:
         if self.follow and dist > self.max_dist:
             x_dist = self.get_distance_x(self.env.movers[0].x)
             y_dist = self.get_distance_y(self.env.movers[0].y)
-            action = [-x_dist/dist, -y_dist/dist]
+            action = [-x_dist / dist, -y_dist / dist]
             return action
 
         # ========== CONSTRAINT 2: ABSTAND ==========
         if not self.follow:
             for i in range(self.env.num_agents - 1):
-                dist1 = self.get_distance(self.env.movers[i + 1].x, self.env.movers[i + 1].y)
+                dist1 = self.get_distance(
+                    self.env.movers[i + 1].x, self.env.movers[i + 1].y
+                )
                 if dist1 > self.env.movers[i + 1].max_dist:
                     x_dist = self.get_distance_x(self.env.movers[i + 1].x)
                     y_dist = self.get_distance_y(self.env.movers[i + 1].y)
-                    action = [-x_dist/dist1, -y_dist/dist1]
+                    action = [-x_dist / dist1, -y_dist / dist1]
                     return action
 
         # ========== CONSTRAINT 3: KOLLISION ==========
@@ -207,8 +220,18 @@ class Mover:
         - Bewege dich weg von der Seite mit mehr Hindernissen
         - Links vs Rechts und Oben vs Unten
         """
-        x_dir = 0.5 if np.sum(self.mu_collision_map[:, :1]) > np.sum(self.mu_collision_map[:, 2:]) else -0.5
-        y_dir = 0.5 if np.sum(self.mu_collision_map[:1, :]) > np.sum(self.mu_collision_map[2:, :]) else -0.5
+        x_dir = (
+            0.5
+            if np.sum(self.mu_collision_map[:, :1])
+            > np.sum(self.mu_collision_map[:, 2:])
+            else -0.5
+        )
+        y_dir = (
+            0.5
+            if np.sum(self.mu_collision_map[:1, :])
+            > np.sum(self.mu_collision_map[2:, :])
+            else -0.5
+        )
 
         return [x_dir, y_dir]
 
@@ -223,7 +246,7 @@ class Mover:
         x_dist = self.get_distance_x(self.x_t)
         y_dist = self.get_distance_y(self.y_t)
 
-        norm = math.sqrt(x_dist ** 2 + y_dist ** 2)
+        norm = math.sqrt(x_dist**2 + y_dist**2)
         x_dir = -x_dist / norm
         y_dir = -y_dist / norm
 

@@ -16,7 +16,9 @@ import stable_worldmodel as swm
 from stable_worldmodel.envs.wire_harness import ExpertPolicy
 
 
-@hydra.main(version_base=None, config_path='./config', config_name='wireharness')
+@hydra.main(
+    version_base=None, config_path='./config', config_name='wireharness'
+)
 def run(cfg):
     """Collect WireHarness expert rollouts."""
 
@@ -31,7 +33,8 @@ def run(cfg):
     world.set_policy(
         ExpertPolicy(
             ckpt_path=ckpt_path / 'best_one_mover_sac/best_model.zip',
-            vec_normalize_path=ckpt_path / 'best_one_mover_sac/vec_normalize.pkl',
+            vec_normalize_path=ckpt_path
+            / 'best_one_mover_sac/vec_normalize.pkl',
             noise_std=cfg.noise_std,
             device=cfg.device,
         )
@@ -51,9 +54,7 @@ def run(cfg):
         options=options,
     )
 
-    logging.success(
-        ' 🎉🎉🎉 Completed data collection for wireharness 🎉🎉🎉'
-    )
+    logging.success(' 🎉🎉🎉 Completed data collection for wireharness 🎉🎉🎉')
 
 
 if __name__ == '__main__':

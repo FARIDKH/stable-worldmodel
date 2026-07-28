@@ -13,33 +13,31 @@ import numpy as np
 import pytest
 
 
-pytest.importorskip("mujoco")
+pytest.importorskip('mujoco')
 
-os.environ.setdefault("MUJOCO_GL", "egl")
+os.environ.setdefault('MUJOCO_GL', 'egl')
 
-import gymnasium as gym
-import stable_worldmodel.envs  # noqa: F401  (registers swm/WireHarness-v0)
+import gymnasium as gym  # noqa: E402
+import stable_worldmodel.envs  # noqa: E402, F401  (registers swm/WireHarness-v0)
 
-from stable_worldmodel.envs.wire_harness import env_basic as C
+from stable_worldmodel.envs.wire_harness import env_basic as C  # noqa: E402
 
 
-ENV_ID = "swm/WireHarness-v0"
+ENV_ID = 'swm/WireHarness-v0'
 OBS_DIM = 4
 ACT_DIM = 2
 N_TARGETS = len(C.DEFAULT_TARGETS)
 
 
 def _mover_var(env):
-    return env.get_wrapper_attr("variation_space").spaces["mover"]
+    return env.get_wrapper_attr('variation_space').spaces['mover']
 
 
 def _read_variation(env):
     """(start, targets) as arrays read back from the variation space."""
     mv = _mover_var(env)
-    start = np.asarray(mv.spaces["start_position"].value, dtype=np.float64)
-    targets = np.asarray(
-        mv.spaces["target_positions"].value, dtype=np.float64
-    )
+    start = np.asarray(mv.spaces['start_position'].value, dtype=np.float64)
+    targets = np.asarray(mv.spaces['target_positions'].value, dtype=np.float64)
     return start, targets
 
 
@@ -57,10 +55,10 @@ def test_spaces_and_info(env):
 
     obs, info = env.reset(seed=0)
     assert obs.shape == (OBS_DIM,)
-    for key in ("state", "goal_state"):
+    for key in ('state', 'goal_state'):
         assert key in info, f"missing info key '{key}'"
-    assert info["state"].shape == (2,)
-    assert info["goal_state"].shape == (2,)
+    assert info['state'].shape == (2,)
+    assert info['goal_state'].shape == (2,)
 
 
 def test_variation_space_drives_the_physics(env):
@@ -71,9 +69,9 @@ def test_variation_space_drives_the_physics(env):
         start, targets = _read_variation(env)
 
         assert targets.shape == (N_TARGETS, 2)
-        np.testing.assert_allclose(info["state"], start, atol=1e-2)
+        np.testing.assert_allclose(info['state'], start, atol=1e-2)
         # goal_state tracks the first target of the sampled sequence
-        np.testing.assert_allclose(info["goal_state"], targets[0], atol=1e-3)
+        np.testing.assert_allclose(info['goal_state'], targets[0], atol=1e-3)
 
         seen.add(tuple(np.round(start, 3)))
 
@@ -86,8 +84,16 @@ def test_sampled_layout_stays_in_bounds(env):
         env.reset(seed=seed)
         start, targets = _read_variation(env)
         for pos in np.vstack([start[None, :], targets]):
-            assert C.WireHarnessBasicEnv.X_MIN <= pos[0] <= C.WireHarnessBasicEnv.X_MAX
-            assert C.WireHarnessBasicEnv.Y_MIN <= pos[1] <= C.WireHarnessBasicEnv.Y_MAX
+            assert (
+                C.WireHarnessBasicEnv.X_MIN
+                <= pos[0]
+                <= C.WireHarnessBasicEnv.X_MAX
+            )
+            assert (
+                C.WireHarnessBasicEnv.Y_MIN
+                <= pos[1]
+                <= C.WireHarnessBasicEnv.Y_MAX
+            )
 
 
 def test_seeded_reset_is_reproducible(env):
@@ -108,20 +114,20 @@ def test_explicit_variation_values_respected(env):
     _, info = env.reset(
         seed=0,
         options={
-            "variation_values": {
-                "mover.start_position": start,
-                "mover.target_positions": targets,
+            'variation_values': {
+                'mover.start_position': start,
+                'mover.target_positions': targets,
             }
         },
     )
     mv = _mover_var(env)
     np.testing.assert_allclose(
-        mv.spaces["start_position"].value, start, atol=1e-6
+        mv.spaces['start_position'].value, start, atol=1e-6
     )
     np.testing.assert_allclose(
-        mv.spaces["target_positions"].value, targets, atol=1e-6
+        mv.spaces['target_positions'].value, targets, atol=1e-6
     )
-    np.testing.assert_allclose(info["state"], start, atol=1e-2)
+    np.testing.assert_allclose(info['state'], start, atol=1e-2)
 
 
 def test_set_state_and_goal_state_hooks(env):
@@ -130,14 +136,14 @@ def test_set_state_and_goal_state_hooks(env):
 
     state = np.array([2.0, 1.0], dtype=np.float32)
     goal = np.array([2.2, 1.0], dtype=np.float32)
-    env.get_wrapper_attr("_set_state")(state)
-    env.get_wrapper_attr("_set_goal_state")(goal)
+    env.get_wrapper_attr('_set_state')(state)
+    env.get_wrapper_attr('_set_goal_state')(goal)
 
     obs, reward, terminated, truncated, info = env.step(
         np.zeros(ACT_DIM, dtype=np.float32)
     )
-    np.testing.assert_allclose(info["state"], state, atol=1e-2)
-    np.testing.assert_allclose(info["goal_state"], goal, atol=1e-6)
+    np.testing.assert_allclose(info['state'], state, atol=1e-2)
+    np.testing.assert_allclose(info['goal_state'], goal, atol=1e-6)
     assert not truncated  # _set_state resets the step counter
 
 
@@ -145,9 +151,9 @@ def test_eval_goal_terminates_on_reach(env):
     """With an eval goal set, reaching it ends the episode (dataset success)."""
     env.reset(seed=0)
     state = np.array([2.0, 1.0], dtype=np.float32)
-    env.get_wrapper_attr("_set_state")(state)
+    env.get_wrapper_attr('_set_state')(state)
     # goal well inside goal_radius of the current position
-    env.get_wrapper_attr("_set_goal_state")(state.copy())
+    env.get_wrapper_attr('_set_goal_state')(state.copy())
 
     _, _, terminated, _, _ = env.step(np.zeros(ACT_DIM, dtype=np.float32))
     assert terminated
@@ -158,12 +164,12 @@ def test_targets_advance_in_sequence(env):
     env.reset(seed=0)
     _, targets = _read_variation(env)
 
-    env.get_wrapper_attr("_set_state")(targets[0].astype(np.float32))
+    env.get_wrapper_attr('_set_state')(targets[0].astype(np.float32))
     _, _, terminated, _, info = env.step(np.zeros(ACT_DIM, dtype=np.float32))
 
-    assert not terminated, "first target should not end the episode"
-    assert info["current_target_idx"] == 1
-    np.testing.assert_allclose(info["goal_state"], targets[1], atol=1e-3)
+    assert not terminated, 'first target should not end the episode'
+    assert info['current_target_idx'] == 1
+    np.testing.assert_allclose(info['goal_state'], targets[1], atol=1e-3)
 
 
 def test_step_runs_and_is_finite(env):
@@ -177,7 +183,7 @@ def test_step_runs_and_is_finite(env):
         assert np.isfinite(obs).all()
         assert np.isfinite(reward)
         rewards.append(reward)
-        for key in ("state", "goal_state"):
+        for key in ('state', 'goal_state'):
             assert key in info
         if terminated or truncated:
             break

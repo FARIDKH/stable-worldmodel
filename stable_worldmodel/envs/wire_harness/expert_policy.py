@@ -52,7 +52,7 @@ class ExpertPolicy(BasePolicy):
             device (str): Device to load the model on, e.g., 'cpu' or 'cuda'.
         """
         super().__init__(**kwargs)
-        
+
         try:
             import stable_baselines3 as sb3
         except ImportError:
