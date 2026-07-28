@@ -1,15 +1,13 @@
-"""Tests for the WireHarness env's variation-space wiring.
+"""Tests for WireHarnessBasicEnv's variation-space and world-model wiring.
 
-The env trains ONE target configuration per instance (one SAC per stage), so the
-goal is FIXED to ``config.MOVER_TARGETS[stage]`` every episode. Only the start
-pose is sampled — jointly, over the discrete configuration set
-``{MOVER_STARTS} ∪ {targets[j != stage]}``. Both start and target poses are
-written into ``variation_space`` and read back from it to drive the physics, so
-the variation space is the single source of truth for an episode.
+One mover visits a fixed sequence of targets. The start position and the whole
+target sequence live in ``variation_space``; ``reset()`` reads them back and
+drives the physics from them, so the variation space is the single source of
+truth for an episode. ``_set_state`` / ``_set_goal_state`` are the
+dataset-driven evaluation hooks used by ``World.evaluate``.
 """
 
 import os
-import sys
 
 import numpy as np
 import pytest
@@ -17,59 +15,37 @@ import pytest
 
 pytest.importorskip("mujoco")
 
-# WireHarness env.py resolves ``import config`` / ``from model.mover import
-# Mover`` off sys.path (the package is not import-relative), so the env's own
-# directory must be importable — mirrors how data collection is launched.
-import stable_worldmodel  # noqa: E402
-
-_WH_DIR = os.path.join(
-    os.path.dirname(stable_worldmodel.__file__), "envs", "wire_harness"
-)
-if _WH_DIR not in sys.path:
-    sys.path.insert(0, _WH_DIR)
-
 os.environ.setdefault("MUJOCO_GL", "egl")
 
-import gymnasium as gym  
-import stable_worldmodel.envs  
+import gymnasium as gym
+import stable_worldmodel.envs  # noqa: F401  (registers swm/WireHarness-v0)
 
-from stable_worldmodel.envs.wire_harness import config as C  
+from stable_worldmodel.envs.wire_harness import env_basic as C
 
 
 ENV_ID = "swm/WireHarness-v0"
-STAGE = 0
-N = len(C.MOVER_BODY_NAMES)
-OBS_DIM = 2 * N + N * (N - 1)  
-ACT_DIM = 2 * N                
-
-def _goal_config(stage=STAGE):
-    return np.array(C.MOVER_TARGETS[stage], dtype=np.float64)
+OBS_DIM = 4
+ACT_DIM = 2
+N_TARGETS = len(C.DEFAULT_TARGETS)
 
 
-def _start_candidates(stage=STAGE):
-    """{MOVER_STARTS} ∪ {targets[j != stage]} — what _sample_starts draws from."""
-    cands = [np.array(C.MOVER_STARTS, dtype=np.float64)]
-    cands += [
-        np.array(C.MOVER_TARGETS[j], dtype=np.float64)
-        for j in range(C.N_STAGES)
-        if j != stage
-    ]
-    return cands
+def _mover_var(env):
+    return env.get_wrapper_attr("variation_space").spaces["mover"]
 
 
-def _read_variation(vs):
-    """(starts, targets) as (N, 2) arrays read from the variation space."""
-    starts, targets = [], []
-    for i in range(N):
-        mv = vs[f"mover_{i + 1}"]
-        starts.append(np.asarray(mv["start_position"].value, dtype=np.float64))
-        targets.append(np.asarray(mv["target_position"].value, dtype=np.float64))
-    return np.array(starts), np.array(targets)
+def _read_variation(env):
+    """(start, targets) as arrays read back from the variation space."""
+    mv = _mover_var(env)
+    start = np.asarray(mv.spaces["start_position"].value, dtype=np.float64)
+    targets = np.asarray(
+        mv.spaces["target_positions"].value, dtype=np.float64
+    )
+    return start, targets
 
 
 @pytest.fixture
 def env():
-    e = gym.make(ENV_ID, stage=STAGE)
+    e = gym.make(ENV_ID)
     yield e
     e.close()
 
@@ -83,84 +59,111 @@ def test_spaces_and_info(env):
     assert obs.shape == (OBS_DIM,)
     for key in ("state", "goal_state"):
         assert key in info, f"missing info key '{key}'"
-    assert info["state"].shape == (2 * N,)
-    assert info["goal_state"].shape == (2 * N,)
+    assert info["state"].shape == (2,)
+    assert info["goal_state"].shape == (2,)
 
 
-def test_goal_is_fixed_stage_target(env):
-    """Goal must NOT vary: it is config.MOVER_TARGETS[stage] every reset."""
-    goal = _goal_config()
-    for seed in range(6):
-        obs, info = env.reset(seed=seed)
-        vs = env.get_wrapper_attr("variation_space")
-        _, targets = _read_variation(vs)
-        np.testing.assert_allclose(targets, goal, atol=1e-3)
-        np.testing.assert_allclose(
-            info["goal_state"].reshape(N, 2), goal, atol=1e-3
-        )
-
-
-def test_start_drawn_from_config_set_and_realized(env):
-    """Start is one of the discrete candidate configs (joint), it differs from
-    the goal, and the physics is actually placed there (state == variation start).
-    """
-    candidates = _start_candidates()
-    goal = _goal_config()
+def test_variation_space_drives_the_physics(env):
+    """The realized mover position matches the sampled start every reset."""
     seen = set()
-    for seed in range(8):
-        obs, info = env.reset(seed=seed)
-        vs = env.get_wrapper_attr("variation_space")
-        starts, _ = _read_variation(vs)
+    for seed in range(6):
+        _, info = env.reset(seed=seed)
+        start, targets = _read_variation(env)
 
-        # joint membership in the discrete candidate set
-        assert any(np.allclose(starts, c, atol=1e-3) for c in candidates), (
-            f"start config not in candidate set:\n{starts}"
-        )
-        # start != goal (non-trivial episode)
-        assert not np.allclose(starts, goal, atol=1e-3)
-        # variation space is the source of truth the physics follows
-        np.testing.assert_allclose(
-            info["state"].reshape(N, 2), starts, atol=1e-2
-        )
-        seen.add(tuple(np.round(starts.reshape(-1), 2)))
+        assert targets.shape == (N_TARGETS, 2)
+        np.testing.assert_allclose(info["state"], start, atol=1e-2)
+        # goal_state tracks the first target of the sampled sequence
+        np.testing.assert_allclose(info["goal_state"], targets[0], atol=1e-3)
+
+        seen.add(tuple(np.round(start, 3)))
 
     # sampling actually explores more than one start across seeds
     assert len(seen) >= 2
 
 
-def test_start_initial_option_forces_mover_starts(env):
-    obs, info = env.reset(seed=3, options={"start": "initial"})
-    vs = env.get_wrapper_attr("variation_space")
-    starts, _ = _read_variation(vs)
-    np.testing.assert_allclose(
-        starts, np.array(C.MOVER_STARTS, dtype=np.float64), atol=1e-3
-    )
+def test_sampled_layout_stays_in_bounds(env):
+    for seed in range(6):
+        env.reset(seed=seed)
+        start, targets = _read_variation(env)
+        for pos in np.vstack([start[None, :], targets]):
+            assert C.WireHarnessBasicEnv.X_MIN <= pos[0] <= C.WireHarnessBasicEnv.X_MAX
+            assert C.WireHarnessBasicEnv.Y_MIN <= pos[1] <= C.WireHarnessBasicEnv.Y_MAX
 
 
 def test_seeded_reset_is_reproducible(env):
     env.reset(seed=11)
-    a, _ = _read_variation(env.get_wrapper_attr("variation_space"))
+    a_start, a_targets = _read_variation(env)
     env.reset(seed=11)
-    b, _ = _read_variation(env.get_wrapper_attr("variation_space"))
-    np.testing.assert_allclose(a, b, atol=1e-9)
+    b_start, b_targets = _read_variation(env)
+    np.testing.assert_allclose(a_start, b_start, atol=1e-9)
+    np.testing.assert_allclose(a_targets, b_targets, atol=1e-9)
 
 
 def test_explicit_variation_values_respected(env):
-    """Dataset-eval path: an explicit start_position override lands in the
-    variation space and is realized by the physics (no resampling on top)."""
-    target_start = np.array([3.0, 2.0], dtype=np.float32)
-    obs, info = env.reset(
+    """Dataset-eval path: an explicit override lands in the variation space and
+    is realized by the physics (no resampling on top)."""
+    start = np.array([3.0, 2.0], dtype=np.float32)
+    targets = np.tile(np.array([1.5, 1.0], dtype=np.float32), (N_TARGETS, 1))
+
+    _, info = env.reset(
         seed=0,
-        options={"variation_values": {"mover_1.start_position": target_start}},
+        options={
+            "variation_values": {
+                "mover.start_position": start,
+                "mover.target_positions": targets,
+            }
+        },
     )
-    vs = env.get_wrapper_attr("variation_space")
+    mv = _mover_var(env)
     np.testing.assert_allclose(
-        vs["mover_1"]["start_position"].value, target_start, atol=1e-6
+        mv.spaces["start_position"].value, start, atol=1e-6
     )
-    # mover_1 (first mover) is actually placed at the override
     np.testing.assert_allclose(
-        info["state"].reshape(N, 2)[0], target_start, atol=1e-2
+        mv.spaces["target_positions"].value, targets, atol=1e-6
     )
+    np.testing.assert_allclose(info["state"], start, atol=1e-2)
+
+
+def test_set_state_and_goal_state_hooks(env):
+    """The World.evaluate callables must move the mover and retarget success."""
+    env.reset(seed=0)
+
+    state = np.array([2.0, 1.0], dtype=np.float32)
+    goal = np.array([2.2, 1.0], dtype=np.float32)
+    env.get_wrapper_attr("_set_state")(state)
+    env.get_wrapper_attr("_set_goal_state")(goal)
+
+    obs, reward, terminated, truncated, info = env.step(
+        np.zeros(ACT_DIM, dtype=np.float32)
+    )
+    np.testing.assert_allclose(info["state"], state, atol=1e-2)
+    np.testing.assert_allclose(info["goal_state"], goal, atol=1e-6)
+    assert not truncated  # _set_state resets the step counter
+
+
+def test_eval_goal_terminates_on_reach(env):
+    """With an eval goal set, reaching it ends the episode (dataset success)."""
+    env.reset(seed=0)
+    state = np.array([2.0, 1.0], dtype=np.float32)
+    env.get_wrapper_attr("_set_state")(state)
+    # goal well inside goal_radius of the current position
+    env.get_wrapper_attr("_set_goal_state")(state.copy())
+
+    _, _, terminated, _, _ = env.step(np.zeros(ACT_DIM, dtype=np.float32))
+    assert terminated
+
+
+def test_targets_advance_in_sequence(env):
+    """Without an eval goal, reaching a target advances to the next one."""
+    env.reset(seed=0)
+    _, targets = _read_variation(env)
+
+    env.get_wrapper_attr("_set_state")(targets[0].astype(np.float32))
+    _, _, terminated, _, info = env.step(np.zeros(ACT_DIM, dtype=np.float32))
+
+    assert not terminated, "first target should not end the episode"
+    assert info["current_target_idx"] == 1
+    np.testing.assert_allclose(info["goal_state"], targets[1], atol=1e-3)
 
 
 def test_step_runs_and_is_finite(env):

@@ -223,5 +223,5 @@ except ImportError:
 
 register(
     id='swm/WireHarness-v0',
-    entry_point='stable_worldmodel.envs.wire_harness.env:WireHarnessEnv',
+    entry_point='stable_worldmodel.envs.wire_harness.env_basic:WireHarnessBasicEnv',
 )

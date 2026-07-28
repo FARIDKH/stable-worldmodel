@@ -1,4 +1,5 @@
 import pickle
+
 import numpy as np
 from stable_worldmodel.policy import BasePolicy
 
@@ -40,17 +41,18 @@ class ExpertPolicy(BasePolicy):
     ):
         """
         Expert Policy (RL) for Wire Harness.
-        Policies have been trained using Soft Actor-Critic (SAC) algorithm from stable_baselines3.
+        Policies have been trained using Soft Actor-Critic (SAC) from
+        stable_baselines3.
 
         Args:
-            ckpt_path (str): Path to the stable_baselines3 .zip file of the trained policy.
-            vec_normalize_path (str): Path to the .pkl file containing the normalization statistics.
+            ckpt_path (str): Path to the stable_baselines3 .zip policy.
+            vec_normalize_path (str): Path to the normalization statistics .pkl.
             noise_std (float): Standard deviation of Gaussian noise added to actions.
             seed (int): Random seed for action noise.
             device (str): Device to load the model on, e.g., 'cpu' or 'cuda'.
         """
         super().__init__(**kwargs)
-
+        
         try:
             import stable_baselines3 as sb3
         except ImportError:
