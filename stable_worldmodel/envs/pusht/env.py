@@ -137,7 +137,7 @@ class PushT(gym.Env):
                         'scale': swm_spaces.Box(
                             low=20,
                             high=60,
-                            init_value=40,
+                            init_value=30,
                             shape=(),
                             dtype=np.float32,
                         ),
