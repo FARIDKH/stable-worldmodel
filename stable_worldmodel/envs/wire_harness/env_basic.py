@@ -41,11 +41,11 @@ XML_PATH = os.path.join(
 )
 
 DEFAULT_TARGETS = [
-    [5.2, 2.8],  # Konfiguration 0
-    [5.2, 0.6],  # Konfiguration 1
-    [3.0, 2.8],  # Konfiguration 2
-    [3.2, 0.4],  # Konfiguration 3
-    [1.2, 0.8],  # Konfiguration 4
+    [5.2, 2.8],  # Configuration 0
+    [5.2, 0.6],  # Configuration 1
+    [3.0, 2.8],  # Configuration 2
+    [3.2, 0.4],  # Configuration 3
+    [1.2, 0.8],  # Configuration 4
 ]
 
 MOVER_START = [4.0, 3.0]
