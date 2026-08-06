@@ -1,5 +1,5 @@
 """
-VISUALIZATION UTILITIES - Funktionen aus dem Original-Skript
+VISUALIZATION UTILITIES - functions from the original script
 """
 
 import matplotlib
@@ -186,26 +186,26 @@ def render_map_panel(
 
 def reward_plot(env, path):
     """
-    ORIGINAL-FUNKTION aus dem Hauptskript.
-    Erstellt ein Diagramm der Rewards über die Zeit für alle Mover.
+    ORIGINAL FUNCTION from the main script.
+    Creates a plot of the rewards over time for all movers.
 
-    Was diese Funktion macht:
-    1. Erstellt ein Matplotlib-Diagramm
-    2. Plottet die Reward-Historie jedes Movers
-    3. Verwendet die Mover-Farben (rot, grün, gelb, lila, orange)
-    4. Speichert als PNG-Datei
+    What this function does:
+    1. Creates a Matplotlib plot
+    2. Plots each mover's reward history
+    3. Uses the mover colors (red, green, yellow, purple, orange)
+    4. Saves it as a PNG file
 
     Args:
-        env: Environment-Objekt mit den Movern und deren reward_list
-        path: Ausgabepfad für die PNG-Datei
+        env: Environment object with the movers and their reward_list
+        path: Output path for the PNG file
     """
-    # X-Achse: Zeitschritte (gleich lang für alle Mover)
+    # X-axis: time steps (same length for all movers)
     x_values = range(len(env.movers[0].reward_list))
 
-    # Erstelle Figure mit bestimmter Größe
+    # Create figure with a specific size
     fig1, ax1 = plt.subplots(figsize=(8, 5))
 
-    # Plotte Reward-Verlauf für jeden Mover mit seiner Farbe
+    # Plot the reward history for each mover with its color
     ax1.plot(
         x_values, env.movers[0].reward_list, label='Reward Red', color='red'
     )
@@ -234,34 +234,34 @@ def reward_plot(env, path):
         color='orange',
     )
 
-    # Achsenbeschriftungen und Titel
-    ax1.set_xlabel('Zeit / Episoden')
+    # Axis labels and title
+    ax1.set_xlabel('Time / Episodes')
     ax1.set_ylabel('Reward')
-    ax1.set_title('Reward-Verlauf')
+    ax1.set_title('Reward History')
 
-    # Legende anzeigen
+    # Show legend
     ax1.legend()
 
-    # Als Datei speichern
+    # Save to file
     fig1.savefig(path)
 
-    # Figure schließen um Speicher freizugeben
+    # Close figure to free memory
     plt.close(fig1)
 
 
 class VideoRecorder:
     """
-    Klasse für Video-Aufnahme der Simulation.
-    Basiert auf den Video-Funktionen aus dem Original Environment.
+    Class for video recording of the simulation.
+    Based on the video functions from the original Environment.
     """
 
     def __init__(self, width=640, height=352):
         """
-        Initialisiert den Video-Recorder.
+        Initializes the video recorder.
 
         Args:
-            width: Video-Breite in Pixeln (Standard: 640)
-            height: Video-Höhe in Pixeln (Standard: 352)
+            width: Video width in pixels (default: 640)
+            height: Video height in pixels (default: 352)
         """
         self.video_w = width
         self.video_h = height
@@ -271,139 +271,139 @@ class VideoRecorder:
 
     def start_video(self, path, fps=30):
         """
-        ORIGINAL-FUNKTION aus Environment.
-        Startet die Video-Aufnahme der Simulation.
+        ORIGINAL FUNCTION from Environment.
+        Starts video recording of the simulation.
 
-        Was diese Funktion macht:
-        1. Konvertiert Pfad zu absolutem Pfad
-        2. Erstellt Verzeichnisse falls nötig
-        3. Initialisiert imageio Writer mit H.264 Codec
-        4. Setzt Frame-Counter zurück
+        What this function does:
+        1. Converts the path to an absolute path
+        2. Creates directories if needed
+        3. Initializes the imageio writer with H.264 codec
+        4. Resets the frame counter
 
         Args:
-            path: Ausgabepfad für das Video (z.B. "videos/simulation.mp4")
-            fps: Frames pro Sekunde (Standard: 30)
+            path: Output path for the video (e.g. "videos/simulation.mp4")
+            fps: Frames per second (default: 30)
         """
-        # Absoluten Pfad verwenden für Zuverlässigkeit
+        # Use an absolute path for reliability
         path = os.path.abspath(path)
 
-        # Verzeichnis erstellen falls nicht vorhanden
+        # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
-        # Pfad und Frame-Counter speichern
+        # Save path and reset frame counter
         self._video_path = path
         self._frame_count = 0
 
         try:
-            # Video-Writer mit H.264 Codec initialisieren
-            # macro_block_size=1 für bessere Qualität bei kleinen Details
+            # Initialize video writer with H.264 codec
+            # macro_block_size=1 for better quality on small details
             self.video_writer = imageio.get_writer(
                 path,
                 fps=fps,
-                codec='libx264',  # H.264 Codec für MP4
+                codec='libx264',  # H.264 codec for MP4
                 macro_block_size=1,
             )
             print(
                 f'[Video] Recording started → {path} ({self.video_w}x{self.video_h} @ {fps}fps)'
             )
         except Exception as e:
-            # Falls Video-Writer nicht erstellt werden kann
+            # If the video writer can't be created
             self.video_writer = None
-            print(f'[Video] Konnte MP4-Writer nicht öffnen: {e}')
+            print(f'[Video] Could not open MP4 writer: {e}')
 
     def capture_frame(self, renderer, data, cam, opt):
         """
-        ORIGINAL-FUNKTION aus Environment.
-        Nimmt einen Frame für das Video auf.
+        ORIGINAL FUNCTION from Environment.
+        Captures a frame for the video.
 
-        Was diese Funktion macht:
-        1. Prüft ob Video-Writer aktiv ist
-        2. Aktualisiert die MuJoCo-Szene
-        3. Rendert den Frame
-        4. Fügt Frame zum Video hinzu
-        5. Erhöht Frame-Counter
+        What this function does:
+        1. Checks whether the video writer is active
+        2. Updates the MuJoCo scene
+        3. Renders the frame
+        4. Adds the frame to the video
+        5. Increments the frame counter
 
         Args:
-            renderer: MuJoCo Renderer-Objekt
-            data: MuJoCo Simulationsdaten
-            cam: MuJoCo Kamera-Objekt
-            opt: MuJoCo Visualisierungsoptionen
+            renderer: MuJoCo renderer object
+            data: MuJoCo simulation data
+            cam: MuJoCo camera object
+            opt: MuJoCo visualization options
         """
-        # Nur aufnehmen wenn Writer aktiv
+        # Only capture if the writer is active
         if self.video_writer is None:
             return
 
-        # MuJoCo-Szene aktualisieren mit aktuellen Daten
+        # Update the MuJoCo scene with current data
         renderer.update_scene(data, camera=cam, scene_option=opt)
 
-        # Frame rendern (gibt numpy array zurück)
+        # Render the frame (returns a numpy array)
         frame = renderer.render()
 
-        # Frame zum Video hinzufügen
+        # Add the frame to the video
         self.video_writer.append_data(frame)
 
-        # Frame-Counter erhöhen für Statistik
+        # Increment frame counter for statistics
         self._frame_count += 1
 
     def finish_video(self):
         """
-        ORIGINAL-FUNKTION aus Environment.
-        Beendet die Video-Aufnahme und speichert die Datei.
+        ORIGINAL FUNCTION from Environment.
+        Finishes video recording and saves the file.
 
-        Was diese Funktion macht:
-        1. Schließt den Video-Writer (speichert die Datei)
-        2. Wartet kurz damit Datei vollständig geschrieben wird
-        3. Prüft ob Datei erfolgreich erstellt wurde
-        4. Gibt Erfolgsmeldung oder Fehlermeldung aus
+        What this function does:
+        1. Closes the video writer (saves the file)
+        2. Waits briefly for the file to be fully written
+        3. Checks whether the file was created successfully
+        4. Prints a success or error message
         """
         if self.video_writer is not None:
             try:
-                # Video-Writer schließen - das speichert die Datei
+                # Close the video writer - this saves the file
                 self.video_writer.close()
             finally:
-                # Writer auf None setzen für sauberen Zustand
+                # Reset writer to None for a clean state
                 self.video_writer = None
 
-            # Kurz warten damit OS die Datei fertig schreibt
+            # Wait briefly so the OS finishes writing the file
             import time
 
             time.sleep(0.2)
 
-            # Prüfen ob Datei existiert und Größe > 0 hat
+            # Check whether the file exists and has size > 0
             ok = (
                 os.path.exists(self._video_path)
                 and os.path.getsize(self._video_path) > 0
             )
 
-            # Status-Meldung ausgeben
+            # Print status message
             print(
-                f'[Video] Recording finished ({self._frame_count} Frames) → {self._video_path} '
-                f'{"(OK)" if ok else "(FEHLER: Datei fehlt/leer)"}'
+                f'[Video] Recording finished ({self._frame_count} frames) → {self._video_path} '
+                f'{"(OK)" if ok else "(ERROR: file missing/empty)"}'
             )
 
 
 def integrate_video_recording(env):
     """
-    Hilfsfunktion um Video-Recording in Environment zu integrieren.
+    Helper function to integrate video recording into the Environment.
 
-    Was diese Funktion macht:
-    - Fügt die Video-Methoden zum Environment hinzu
-    - Initialisiert benötigte Variablen
+    What this function does:
+    - Adds the video methods to the Environment
+    - Initializes required variables
 
     Args:
-        env: Environment-Objekt
+        env: Environment object
     """
-    # Video-Variablen initialisieren
+    # Initialize video variables
     env.video_w = 640
     env.video_h = 352
     env.video_writer = None
     env._video_path = None
     env._frame_count = 0
 
-    # Methoden als Instanz-Methoden hinzufügen
+    # Add methods as instance methods
     recorder = VideoRecorder(env.video_w, env.video_h)
 
-    # Methoden binden
+    # Bind methods
     env.start_video = recorder.start_video
     env.capture_frame = lambda: recorder.capture_frame(
         env.renderer, env.data, env.cam, env.opt

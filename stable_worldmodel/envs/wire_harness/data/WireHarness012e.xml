@@ -27,19 +27,19 @@
     <geom type="box" size="3.36 0.01 0.08" pos="3.36 0 0.08" rgba="0.59 0.75 0.22 1" name="lower_boundary"/>
     <geom type="box" size="0.01 1.92 0.08" pos="0 1.92 0.08" rgba="0.59 0.75 0.22 1" name="left_boundary"/>
 
-    <!-- Ersetze den gesamten Target-Bereich (Zeile 28-73) mit dieser Version: -->
+    <!-- Replace the entire target section (line 28-73) with this version: -->
 
-    <!-- ========== ORIGINAL TARGETS (als visuelle Marker ohne Kollision) ========== -->
+    <!-- ========== ORIGINAL TARGETS (as visual markers, no collision) ========== -->
 
 
-    <!-- ========== ZIELKONFIGURATION 3 (Index 3 in MOVER_TARGETS) ========== -->
-        <!-- ========== TARGETS: kosmetische Subziele (keine Kollision) ========== -->
-    <!-- Farben je Agent: RED, GREEN, YELLOW, PURPLE, ORANGE -->
-    <!-- Einheitliche Darstellung: type="sphere", size="0.02", rgba alpha=0.5 -->
-    <!-- Keine Kollision/Einfluss: contype="0" conaffinity="0" -->
+    <!-- ========== TARGET CONFIGURATION 3 (index 3 in MOVER_TARGETS) ========== -->
+        <!-- ========== TARGETS: cosmetic sub-targets (no collision) ========== -->
+    <!-- Colors per agent: RED, GREEN, YELLOW, PURPLE, ORANGE -->
+    <!-- Uniform appearance: type="sphere", size="0.02", rgba alpha=0.5 -->
+    <!-- No collision/influence: contype="0" conaffinity="0" -->
 
-    <!-- ===== Config 0: Rechts oben Cluster ===== -->
-    <!-- Reihenfolge: RED, GREEN, YELLOW, PURPLE, ORANGE -->
+    <!-- ===== Config 0: top-right cluster ===== -->
+    <!-- Order: RED, GREEN, YELLOW, PURPLE, ORANGE -->
 
     <!-- ========== /TARGETS ========== -->
 
